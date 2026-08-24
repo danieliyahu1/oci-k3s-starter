@@ -1,0 +1,26 @@
+# kticket — Argo Application. Points at the kticket repo's deploy/ directory.
+# The image is pinned by commit SHA in deploy/deployment.yaml; the build-and-push
+# workflow in that repo pushes a new arm64 image (ghcr.io/danieliyahu1/kticket)
+# on every push to main, and this Application reconciles the cluster to it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kticket
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/kticket.git
+    targetRevision: HEAD
+    path: deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kticket
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
