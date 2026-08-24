@@ -75,6 +75,12 @@ oci_config_profile = "DEFAULT"
 #   home    = { service = "http://homepage.homepage.svc.cluster.local:3000" }
 #   grafana = { service = "http://vm-stack-grafana.observability.svc.cluster.local:80" }
 #   argocd  = { service = "https://argocd-server.argocd.svc.cluster.local:443", no_tls_verify = true }
+#   # A PUBLIC app — a hostname anyone can reach with no Cloudflare Access login in
+#   # front of it (e.g. a ticketing site). Set access = false to skip the Access
+#   # application; omit it (default true) and the hostname is login-gated like the
+#   # internal tools above. The value is the in-cluster Service the tunnel hands
+#   # requests to: http://<service>.<namespace>.svc.cluster.local:<port>.
+#   myapp  = { service = "http://myapp.myapp.svc.cluster.local:3000", access = false }
 # }
 
 # ── Rung 4: OCI Vault ─────────────────────────────────────────────────────────────
