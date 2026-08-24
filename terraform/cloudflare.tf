@@ -105,7 +105,13 @@ resource "cloudflare_zero_trust_access_policy" "members" {
 }
 
 resource "cloudflare_zero_trust_access_application" "protected" {
-  for_each = var.enable_cloudflare && length(var.access_allowed_emails) > 0 ? var.tunnel_routes : {}
+  # Only routes that opted into Access get an app. A route with `access = false`
+  # is served publicly (no login) while still going through the tunnel — used for
+  # public apps like kticket. Without this, every tunnel hostname would be gated
+  # behind the Access login.
+  for_each = var.enable_cloudflare && length(var.access_allowed_emails) > 0 ? {
+    for k, v in var.tunnel_routes : k => v if v.access != false
+  } : {}
 
   account_id = var.cf_account_id
   name       = "${each.key}.${var.domain}"

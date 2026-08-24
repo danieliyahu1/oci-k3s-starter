@@ -243,6 +243,10 @@ variable "tunnel_routes" {
   type = map(object({
     service       = string
     no_tls_verify = optional(bool, false)
+    # When false, this route is served PUBLICLY — no Cloudflare Access login in
+    # front of it. Use for a public app (e.g. a ticketing site); leave unset/true
+    # for the internal tools (Grafana, Argo, Homepage), which stay login-gated.
+    access = optional(bool, true)
   }))
 
   default = {
