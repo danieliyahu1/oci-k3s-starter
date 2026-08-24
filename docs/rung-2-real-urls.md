@@ -200,6 +200,18 @@ tofu apply
 That creates the tunnel, its routing, a proxied CNAME per hostname, and — if you listed
 emails — a Cloudflare Access application in front of each one.
 
+> **Public app, no login.** Every route above is Access-gated by default. To serve a
+> hostname **publicly** — no Access login, e.g. a ticketing site — set `access = false` on
+> that route in `tunnel_routes`:
+> ```hcl
+> tunnel_routes = {
+>   # ...
+>   myapp = { service = "http://myapp.myapp.svc.cluster.local:3000", access = false }
+> }
+> ```
+> The tunnel still fronts it (no inbound ports, no certificate to own); Access is simply
+> skipped for that hostname. See also the worked example in `terraform/terraform.tfvars.example`.
+
 ## 4. Give the connector its token
 
 ```bash
