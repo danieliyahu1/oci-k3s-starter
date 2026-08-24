@@ -219,6 +219,11 @@ is still a refusal, k3s itself is not listening yet — watch the bootstrap fini
 ssh ubuntu@<ip> 'sudo journalctl -u k3s-starter-bootstrap -f'
 ```
 
+A second cause: the kubeconfig itself points at the **public IP** — an old version of this
+repo generated those (#9), and hand-copied ones exist too. The connect scripts notice and
+re-fetch on their own; running kubectl by hand, delete the stale file and let the script
+fetch a fresh one: `rm -f kubeconfig && ./scripts/connect.sh`
+
 ## Argo is up but no apps appear at all
 
 Look at the root Application first:
@@ -246,6 +251,28 @@ Confirm what it is actually pointed at:
 
 ```bash
 kubectl -n argocd get application root -o jsonpath='{.spec.source}' | jq
+```
+
+## Argo shows an app as "Progressing" forever
+
+This is **normal** for apps that deploy CRDs, operators, or `ExternalSecret`-backed
+resources. Argo considers the app "Progressing" until every resource reaches a Ready state,
+but CRDs and their controllers are not standard Deployments — they report Ready only after
+they have reconciled something, which can take a while or may never happen at the expected
+level.
+
+**When it is not a problem:** the pods are running, the `ExternalSecret` shows
+`SecretSynced`, and the tunnel or UI is reachable. The Progressing status is cosmetic.
+
+**When it is a problem:** the pods are crash-looping, or the `ExternalSecret` is stuck on
+`SecretStoreNotFound` / `SecretSynced=False`.
+
+Check the real status with:
+
+```bash
+kubectl -n <ns> get pods
+kubectl -n <ns> get externalsecret -o wide       # if applicable
+kubectl -n argocd get application <app> -o jsonpath='{.status.conditions}' | jq
 ```
 
 ## `access.api.error.not_enabled` during apply
