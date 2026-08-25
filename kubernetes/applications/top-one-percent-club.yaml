@@ -1,0 +1,25 @@
+# top-one-percent-club — Argo Application. Points at the app repo's deploy/ directory.
+# CI in that repo builds the arm64 image and pins deploy/app.yaml to it by commit SHA;
+# this Application reconciles the cluster to whatever master says.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: top-one-percent-club
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/top-one-percent-club.git
+    targetRevision: HEAD
+    path: deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: top-one-percent-club
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
