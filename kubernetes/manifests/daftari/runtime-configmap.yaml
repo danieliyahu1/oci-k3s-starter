@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: daftari-runtime-config
+  namespace: daftari
+data:
+  DAFTARI_ORIGIN: https://daftari.danieliyahu.com
