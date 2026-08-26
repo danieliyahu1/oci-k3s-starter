@@ -22,10 +22,11 @@ Ordered by how often it happens.
 ./scripts/retry-apply.ps1           # Windows PowerShell
 ```
 
-It asks every five minutes, **rotates availability domains** (capacity is per-AD, so a
-different AD is a genuinely different question), backs off exponentially if Oracle throttles
-it, and stops immediately on anything that is *not* a capacity failure — so an expired
-session or a bad variable surfaces instead of looping all night.
+It asks every five minutes, **rotates availability and fault domains** (capacity is
+tracked per-AD *and* per-FD, so each attempt is a genuinely different question — and in a
+single-AD region the fault domain is the only axis left), backs off exponentially if
+Oracle throttles it, and stops immediately on anything that is *not* a capacity failure —
+so an expired session or a bad variable surfaces instead of looping all night.
 
 Asking for less also helps, and a 1-core box is a real cluster:
 
@@ -76,6 +77,15 @@ without touching the session's validity:
   the token itself, so `tofu` works while `oci` fails — that mismatch is the clue. (You can
   confirm with `oci session validate --profile <name>`, but a successful validate does not
   make other `oci` commands work; they still need the flag.)
+
+  Rather than repeating the flag on every command, set it once per shell:
+
+  ```bash
+  export OCI_CLI_AUTH=security_token          # macOS, Linux, WSL
+  ```
+  ```powershell
+  $env:OCI_CLI_AUTH = 'security_token'        # Windows
+  ```
 
 ## The box is up but there is no cluster
 
