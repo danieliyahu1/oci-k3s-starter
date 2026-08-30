@@ -64,12 +64,24 @@ write_files:
         destination:
           server: https://kubernetes.default.svc
           namespace: argocd
+        ignoreDifferences:
+          # Argo CD >= 3.3 auto-attaches controller-internal pre/post-delete finalizers
+          # to any Application whose chart declares hooks (the obs-stack chart's dashboard
+          # sync job does). They are management metadata, not Git state; without this the
+          # app-of-apps reads them as drift and self-heals against the controller forever
+          # (argoproj/argo-cd#27533).
+          - group: argoproj.io
+            kind: Application
+            jqPathExpressions:
+              - '.metadata.finalizers[] | select(startswith("pre-delete-finalizer.argocd.argoproj.io"))'
+              - '.metadata.finalizers[] | select(startswith("post-delete-finalizer.argocd.argoproj.io"))'
         syncPolicy:
           automated:
             prune: true
             selfHeal: true
           syncOptions:
             - CreateNamespace=true
+            - RespectIgnoreDifferences=true
 
   # Grafana's admin credentials, delivered as a Secret so the cluster never runs on
   # admin/admin.
