@@ -66,7 +66,7 @@ output "console_private_key" {
 output "urls" {
   description = "The hostnames the tunnel serves."
   value = var.enable_cloudflare ? [
-    for name, _ in var.tunnel_routes : "https://${name}.${var.domain}"
+    for name, _ in local.tunnel_routes : "https://${name}.${var.domain}"
   ] : []
 }
 

@@ -16,4 +16,12 @@ locals {
   # way out.
   ubuntu_images = data.oci_core_images.ubuntu_arm.images
   image_id      = var.image_ocid != null ? var.image_ocid : (length(local.ubuntu_images) > 0 ? local.ubuntu_images[0].id : null)
+
+  tunnel_routes = merge(var.tunnel_routes, {
+    onlykas = {
+      service       = "http://onlykas.onlykas.svc.cluster.local:80"
+      no_tls_verify = false
+      access        = false
+    }
+  })
 }

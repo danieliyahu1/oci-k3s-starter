@@ -50,7 +50,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "main" {
   config = {
     ingress = concat(
       [
-        for name, route in var.tunnel_routes : {
+        for name, route in local.tunnel_routes : {
           hostname = "${name}.${var.domain}"
           service  = route.service
           origin_request = {
@@ -71,7 +71,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "main" {
 # what makes the box's ephemeral public IP a non-issue: rebuild it, get a new address,
 # and these records do not change.
 resource "cloudflare_dns_record" "tunnel" {
-  for_each = var.enable_cloudflare ? var.tunnel_routes : {}
+  for_each = var.enable_cloudflare ? local.tunnel_routes : {}
 
   zone_id = var.cf_zone_id
   name    = each.key
@@ -110,7 +110,7 @@ resource "cloudflare_zero_trust_access_application" "protected" {
   # public apps like kticket. Without this, every tunnel hostname would be gated
   # behind the Access login.
   for_each = var.enable_cloudflare && length(var.access_allowed_emails) > 0 ? {
-    for k, v in var.tunnel_routes : k => v if v.access != false
+    for k, v in local.tunnel_routes : k => v if v.access != false
   } : {}
 
   account_id = var.cf_account_id
