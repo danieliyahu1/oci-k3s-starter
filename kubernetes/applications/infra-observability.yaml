@@ -119,7 +119,7 @@ spec:
           # opening Grafana shows a directory and the useful one is three clicks away.
           grafana.ini:
             dashboards:
-              default_home_dashboard_path: /tmp/dashboards/your-cluster.json
+              default_home_dashboard_path: /var/lib/grafana/dashboards/default/your-cluster.json
 
         # A curated few, rather than everything the chart ships.
         #
