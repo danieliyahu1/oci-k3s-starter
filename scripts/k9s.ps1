@@ -11,7 +11,7 @@
 # and k3s's API certificate carries a 127.0.0.1 SAN rather than the public address. (See #9.)
 #
 # One command, then quit k9s and the tunnel closes with it. If you also want the web UIs
-# (Argo CD, Grafana, Homepage), run ../scripts/connect.ps1 instead.
+# (Argo CD, Grafana, Homepage), run .\scripts\connect.ps1 instead.
 param(
     [string]$IP,
     [string]$KubeconfigPath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'kubeconfig'),
@@ -87,8 +87,11 @@ try {
     # calls this wrapper, so ordinary command lookup here would recurse back into the script.
     $k9sExe = Join-Path $env:LOCALAPPDATA 'Programs\k9s\k9s.exe'
     if (-not (Test-Path $k9sExe)) {
+        # $null, not the probed path: Join-Path returns a string whether or not the file
+        # exists, so leaving it set would make the not-installed branch below unreachable
+        # and replace its install instructions with a raw CommandNotFoundException.
         $k9sCmd = Get-Command k9s -CommandType Application -ErrorAction SilentlyContinue
-        if ($k9sCmd) { $k9sExe = $k9sCmd.Source }
+        $k9sExe = if ($k9sCmd) { $k9sCmd.Source } else { $null }
     }
     if (-not $k9sExe) {
         Write-Host ""
