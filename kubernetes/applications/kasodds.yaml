@@ -1,20 +1,20 @@
-# Kaspa Even Odd owns its Kubernetes manifests in its deploy/ directory.
+# KasOdds owns its Kubernetes manifests in its deploy/ directory.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kaspa-even-odd
+  name: kasodds
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/danieliyahu1/kaspa-even-odd.git
+    repoURL: https://github.com/danieliyahu1/kas-odds.git
     targetRevision: HEAD
     path: deploy
   destination:
     server: https://kubernetes.default.svc
-    namespace: kaspa-even-odd
+    namespace: kasodds
   syncPolicy:
     automated:
       prune: true
