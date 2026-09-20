@@ -286,6 +286,10 @@ variable "tunnel_routes" {
 
   default = {
     # <name>.<your domain>. Change the keys, not the shape.
+    #
+    # These are the GENERIC defaults. The apps this repo actually serves are declared in
+    # `local.app_routes` (terraform/locals.tf), merged over this map, so a fresh clone
+    # reproduces every hostname from tracked code rather than a machine-local tfvars.
     home = {
       service = "http://homepage.homepage.svc.cluster.local:3000"
     }

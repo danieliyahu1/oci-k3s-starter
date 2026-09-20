@@ -70,7 +70,9 @@ oci_config_profile = "DEFAULT"
 # nothing but their own login pages.
 # access_allowed_emails = ["you@example.com"]
 #
-# Override the routes only if you renamed things:
+# The hostnames this deployment serves live in tracked code — `local.app_routes` in
+# terraform/locals.tf — so a fresh clone reproduces them. Use this variable only to
+# override the generic defaults (home/grafana/argocd) when something is unusual:
 # tunnel_routes = {
 #   home    = { service = "http://homepage.homepage.svc.cluster.local:3000" }
 #   grafana = { service = "http://vm-stack-grafana.observability.svc.cluster.local:80" }

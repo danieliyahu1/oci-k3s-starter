@@ -199,12 +199,14 @@ tofu apply
 That creates the tunnel, its routing, a proxied CNAME per hostname, and — if you listed
 emails — a Cloudflare Access application in front of each one.
 
-> **Public app, no login.** Every route above is Access-gated by default. To serve a
-> hostname **publicly** — no Access login, e.g. a ticketing site — set `access = false` on
-> that route in `tunnel_routes`:
+> **Public app, no login.** Every route is Access-gated by default. To serve a hostname
+> **publicly** — no Access login, e.g. a ticketing site — set `access = false` on that route.
+> This deployment's routes are declared in `local.app_routes` in `terraform/locals.tf`, which
+> is tracked code, so a fresh clone reproduces every hostname; the `tunnel_routes` variable
+> remains the override for anything unusual:
 > ```hcl
-> tunnel_routes = {
->   # ...
+> # terraform/locals.tf — the apps this deployment serves
+> app_routes = {
 >   myapp = { service = "http://myapp.myapp.svc.cluster.local:3000", access = false }
 > }
 > ```
