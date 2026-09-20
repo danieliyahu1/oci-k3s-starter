@@ -213,6 +213,11 @@ emails — a Cloudflare Access application in front of each one.
 > The tunnel still fronts it (no inbound ports, no certificate to own); Access is simply
 > skipped for that hostname. See also the worked example in `terraform/terraform.tfvars.example`.
 
+> **A route on another domain.** A route may set `hostname` (a full FQDN) and `zone_id`
+> (that domain's Cloudflare zone) to leave `var.domain` — e.g. a game on `kasodds.com`.
+> To move an app without breaking links, add a permanent redirect from the old hostname
+> in `local.app_redirects` (terraform/locals.tf); the path and query are preserved.
+
 ## 4. Give the connector its token
 
 ```bash

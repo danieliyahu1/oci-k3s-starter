@@ -274,7 +274,7 @@ variable "cf_zone_id" {
 }
 
 variable "tunnel_routes" {
-  description = "Hostnames the tunnel serves, and the in-cluster Service each maps to. Note these point straight at Kubernetes Services — there is no ingress controller in the middle, because the tunnel already terminates the request."
+  description = "Hostnames the tunnel serves, and the in-cluster Service each maps to. Note these point straight at Kubernetes Services — there is no ingress controller in the middle, because the tunnel already terminates the request. A route may override `hostname` (a full FQDN, for a domain other than var.domain) and `zone_id` (that domain's Cloudflare zone); both default to `<key>.<var.domain>` and var.cf_zone_id."
   type = map(object({
     service       = string
     no_tls_verify = optional(bool, false)
@@ -282,6 +282,12 @@ variable "tunnel_routes" {
     # front of it. Use for a public app (e.g. a ticketing site); leave unset/true
     # for the internal tools (Grafana, Argo, Homepage), which stay login-gated.
     access = optional(bool, true)
+    # Optional, for a route NOT under var.domain (e.g. "kasodds.com"): the full
+    # hostname, and the Cloudflare zone that hosts it. Defaults to
+    # "<key>.<var.domain>" and var.cf_zone_id — what every route used before
+    # custom domains existed.
+    hostname = optional(string)
+    zone_id  = optional(string)
   }))
 
   default = {
@@ -316,6 +322,12 @@ variable "access_allowed_emails" {
   description = "Email addresses allowed through Cloudflare Access. Empty means NO Access app is created and your hostnames are served to the whole internet — fine for a public site, wrong for Grafana."
   type        = list(string)
   default     = []
+}
+
+variable "redirects" {
+  description = "Permanent (301) redirects, as source hostname => target URL, both in the primary zone (var.cf_zone_id). For each one a proxied DNS record is created for the source hostname — Cloudflare must answer for it — and a Single Redirect rule is added to the zone. The request PATH and QUERY are preserved, so existing links keep working (e.g. an invite link). Use when an app moves to a new hostname."
+  type        = map(string)
+  default     = {}
 }
 
 # ══════════════════════════════════════════════════════════════════════════════════

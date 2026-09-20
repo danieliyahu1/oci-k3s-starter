@@ -17,38 +17,71 @@ locals {
   ubuntu_images = data.oci_core_images.ubuntu_arm.images
   image_id      = var.image_ocid != null ? var.image_ocid : (length(local.ubuntu_images) > 0 ? local.ubuntu_images[0].id : null)
 
+  # The Cloudflare zone that hosts a custom-domain route (e.g. kasodds.com). Looked up
+  # by name so its id is not one more value to copy from the dashboard. Read only when
+  # Cloudflare is on, so a rung-1 apply never calls the Cloudflare API.
+  kasodds_zone_id = var.enable_cloudflare ? data.cloudflare_zone.kasodds[0].id : null
+
   # The apps THIS deployment serves, on top of the generic defaults in var.tunnel_routes.
   # Kept here — in tracked code — so a fresh clone reproduces every hostname without a
   # machine-local tfvars. The gitignored tfvars holds only account and secret values
   # (region, OCIDs, tokens, emails); var.tunnel_routes stays as the override for anything
   # unusual. `access = false` serves that hostname publicly, with no Cloudflare Access.
+  #
+  # `hostname`/`zone_id` carry a route on a domain other than var.domain (kasodds.com);
+  # null means the usual `<key>.<var.domain>` in var.cf_zone_id.
   app_routes = {
     daftari = {
       service       = "http://daftari.daftari.svc.cluster.local:80"
       no_tls_verify = false
       access        = false
+      hostname      = null
+      zone_id       = null
     }
     kticket = {
       service       = "http://kticket.kticket.svc.cluster.local:3000"
       no_tls_verify = false
       access        = false
+      hostname      = null
+      zone_id       = null
     }
     onepercent = {
       service       = "http://top-one-percent-club.top-one-percent-club.svc.cluster.local:80"
       no_tls_verify = false
       access        = false
+      hostname      = null
+      zone_id       = null
     }
     kasodds = {
       service       = "http://kasodds.kasodds.svc.cluster.local:3000"
       no_tls_verify = false
       access        = false
+      hostname      = "kasodds.com"
+      zone_id       = local.kasodds_zone_id
+    }
+    kasodds_www = {
+      service       = "http://kasodds.kasodds.svc.cluster.local:3000"
+      no_tls_verify = false
+      access        = false
+      hostname      = "www.kasodds.com"
+      zone_id       = local.kasodds_zone_id
     }
     onlykas = {
       service       = "http://onlykas.onlykas.svc.cluster.local:80"
       no_tls_verify = false
       access        = false
+      hostname      = null
+      zone_id       = null
     }
   }
 
   tunnel_routes = merge(var.tunnel_routes, local.app_routes)
+
+  # The old hostname redirects to the new one — in tracked code; var.redirects overrides.
+  # Path and query are preserved, so existing invite links keep working.
+  app_redirects = {
+    "kasodds.danieliyahu.com" = "https://kasodds.com"
+  }
+
+  redirects = merge(var.redirects, local.app_redirects)
 }

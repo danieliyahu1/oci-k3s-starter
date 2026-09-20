@@ -51,7 +51,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "main" {
     ingress = concat(
       [
         for name, route in local.tunnel_routes : {
-          hostname = "${name}.${var.domain}"
+          hostname = coalesce(route.hostname, "${name}.${var.domain}")
           service  = route.service
           origin_request = {
             no_tls_verify = route.no_tls_verify
@@ -66,6 +66,18 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "main" {
   }
 }
 
+# ── Custom-domain zones ───────────────────────────────────────────────────────────
+# A route with its own `hostname` lives in a different Cloudflare zone. Look that zone
+# up by name so its id is not one more value to copy from the dashboard; fetched only
+# when Cloudflare is on.
+data "cloudflare_zone" "kasodds" {
+  count = var.enable_cloudflare ? 1 : 0
+
+  filter = {
+    name = "kasodds.com"
+  }
+}
+
 # ── DNS ───────────────────────────────────────────────────────────────────────────
 # A CNAME per hostname, pointing at the tunnel rather than at any IP address. This is
 # what makes the box's ephemeral public IP a non-issue: rebuild it, get a new address,
@@ -73,8 +85,11 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "main" {
 resource "cloudflare_dns_record" "tunnel" {
   for_each = var.enable_cloudflare ? local.tunnel_routes : {}
 
-  zone_id = var.cf_zone_id
-  name    = each.key
+  # A route with a custom `hostname` (e.g. kasodds.com) lives in its own zone, so the
+  # record's zone and name come from the route; everything else keeps the old
+  # `<key>.<var.domain>` in var.cf_zone_id, unchanged.
+  zone_id = coalesce(each.value.zone_id, var.cf_zone_id)
+  name    = coalesce(each.value.hostname, each.key)
   type    = "CNAME"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.main[0].id}.cfargotunnel.com"
 
@@ -114,8 +129,8 @@ resource "cloudflare_zero_trust_access_application" "protected" {
   } : {}
 
   account_id = var.cf_account_id
-  name       = "${each.key}.${var.domain}"
-  domain     = "${each.key}.${var.domain}"
+  name       = coalesce(each.value.hostname, "${each.key}.${var.domain}")
+  domain     = coalesce(each.value.hostname, "${each.key}.${var.domain}")
   type       = "self_hosted"
 
   # A WEEK, not the 24h default, and the reason is a real outage rather than convenience.
@@ -135,5 +150,57 @@ resource "cloudflare_zero_trust_access_application" "protected" {
   policies = [{
     id         = cloudflare_zero_trust_access_policy.members[0].id
     precedence = 1
+  }]
+}
+
+# ── Redirects ─────────────────────────────────────────────────────────────────────
+#
+# When an app moves to a new hostname, the old one should send visitors to the new one.
+# Two things are needed at the edge: a proxied DNS record for the SOURCE hostname
+# (Cloudflare has to answer for it before any rule can run), and a Single Redirect rule.
+# The record's target is irrelevant — the rule intercepts before the tunnel — but it
+# must be proxied, or the name simply does not resolve.
+#
+# The redirect preserves PATH and QUERY, so deep links survive the move: an invite at
+# /join?game=… lands on the new host at the same path, not on its front page.
+resource "cloudflare_dns_record" "redirect" {
+  for_each = var.enable_cloudflare ? local.redirects : {}
+
+  zone_id = var.cf_zone_id
+  name    = each.key
+  type    = "CNAME"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.main[0].id}.cfargotunnel.com"
+  proxied = true
+  ttl     = 1
+  comment = "Managed by OpenTofu — redirect to ${each.value}"
+}
+
+resource "cloudflare_ruleset" "redirects" {
+  count = var.enable_cloudflare && length(local.redirects) > 0 ? 1 : 0
+
+  zone_id = var.cf_zone_id
+  name    = "redirects"
+  kind    = "zone"
+  phase   = "http_request_dynamic_redirect"
+
+  rules = [for host, target in local.redirects : {
+    # `ref` gives the rule a stable id, so editing the expression updates the rule
+    # instead of recreating it.
+    ref         = "redirect_${replace(host, ".", "_")}"
+    description = "Redirect ${host} to ${target}"
+    expression  = "http.host eq \"${host}\""
+    action      = "redirect"
+
+    action_parameters = {
+      from_value = {
+        status_code = 301
+        # concat, not a bare URL: a static target would drop the path. This sends
+        # /anything on the old host to /anything on the new one.
+        target_url = {
+          expression = "concat(\"${target}\", http.request.uri.path)"
+        }
+        preserve_query_string = true
+      }
+    }
   }]
 }
