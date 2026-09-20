@@ -177,11 +177,11 @@ events and logs — without typing `kubectl`. It reads the same `kubeconfig` tha
 does, so it works through the same SSH tunnel, and `scripts/k9s.ps1` (or `k9s.sh`) sets it
 all up in one command:
 
-```powershell
-..\scripts\k9s.ps1     # Windows PowerShell
-```
 ```bash
 ./scripts/k9s.sh       # macOS, Linux, WSL, Git Bash
+```
+```powershell
+.\scripts\k9s.ps1      # Windows PowerShell
 ```
 
 Quit k9s and the tunnel closes with it. Where the Argo CD UI answers "what is my deploy

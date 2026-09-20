@@ -11,7 +11,7 @@
 # and k3s's API certificate carries a 127.0.0.1 SAN rather than the public address. (See #9.)
 #
 # One command, then quit k9s and the tunnel closes with it. If you also want the web UIs
-# (Argo CD, Grafana, Homepage), run ../scripts/connect.ps1 instead.
+# (Argo CD, Grafana, Homepage), run .\scripts\connect.ps1 instead.
 param(
     [string]$IP,
     [string]$KubeconfigPath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'kubeconfig'),
@@ -63,15 +63,23 @@ try {
         -ArgumentList '-N', '-L', '6443:127.0.0.1:6443', "$SshUser@$IP"
 
     # Wait for the tunnel instead of guessing at a sleep.
+    #
+    # ⚠ THE PREFERENCE CHANGE IS THE POINT, NOT TIDINESS. Windows PowerShell 5.1 turns a
+    # native program's stderr into a terminating NativeCommandError while
+    # $ErrorActionPreference is 'Stop' — and `*> $null` redirects the text without stopping
+    # that. kubectl writes "connection refused" to stderr on every attempt before the
+    # tunnel is up, which is exactly the expected case here, so the loop built to wait
+    # patiently could instead abort on its first iteration. Scoped to the loop, and done
+    # this way rather than via cmd.exe so the script still runs under pwsh anywhere.
     $ready = $false
+    $eapOuter = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     foreach ($i in 1..30) {
-        # Windows PowerShell 5.1 turns a native program's stderr into a terminating
-        # NativeCommandError when ErrorActionPreference is Stop. cmd keeps an expected
-        # connection refusal during tunnel startup from aborting this retry loop.
-        cmd.exe /d /c "kubectl get --raw /readyz >nul 2>&1"
+        kubectl get --raw /readyz *> $null
         if ($LASTEXITCODE -eq 0) { $ready = $true; break }
         Start-Sleep -Seconds 1
     }
+    $ErrorActionPreference = $eapOuter
 
     if (-not $ready) {
         Write-Host ""
@@ -87,8 +95,11 @@ try {
     # calls this wrapper, so ordinary command lookup here would recurse back into the script.
     $k9sExe = Join-Path $env:LOCALAPPDATA 'Programs\k9s\k9s.exe'
     if (-not (Test-Path $k9sExe)) {
+        # $null, not the probed path: Join-Path returns a string whether or not the file
+        # exists, so leaving it set would make the not-installed branch below unreachable
+        # and replace its install instructions with a raw CommandNotFoundException.
         $k9sCmd = Get-Command k9s -CommandType Application -ErrorAction SilentlyContinue
-        if ($k9sCmd) { $k9sExe = $k9sCmd.Source }
+        $k9sExe = if ($k9sCmd) { $k9sCmd.Source } else { $null }
     }
     if (-not $k9sExe) {
         Write-Host ""
