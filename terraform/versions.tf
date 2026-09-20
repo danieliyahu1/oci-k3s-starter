@@ -1,4 +1,10 @@
 terraform {
+  # Remote state: this deployment keeps state in its own OCI Object Storage bucket
+  # (created by state-backend.tf; see docs/state-and-credentials.md). The connection
+  # values live in backend.hcl, which is gitignored — init with:
+  #   tofu init -backend-config=backend.hcl
+  backend "s3" {}
+
   # OpenTofu 1.10+ (or Terraform 1.10+). 1.10 is the floor because of native state
   # lockfile support, which matters the moment you move state off your laptop.
   required_version = ">= 1.10"
