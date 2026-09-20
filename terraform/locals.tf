@@ -31,12 +31,12 @@ locals {
     kticket = {
       service       = "http://kticket.kticket.svc.cluster.local:3000"
       no_tls_verify = false
-      access        = true
+      access        = false
     }
     onepercent = {
       service       = "http://top-one-percent-club.top-one-percent-club.svc.cluster.local:80"
       no_tls_verify = false
-      access        = true
+      access        = false
     }
     kasodds = {
       service       = "http://kasodds.kasodds.svc.cluster.local:3000"
