@@ -77,10 +77,12 @@ locals {
 
   tunnel_routes = merge(var.tunnel_routes, local.app_routes)
 
-  # The old hostname redirects to the new one — in tracked code; var.redirects overrides.
-  # Path and query are preserved, so existing invite links keep working.
+  # The old hostnames redirect to the new one — in tracked code; var.redirects overrides.
+  # Path and query are preserved, so existing invite links keep working. Both prior names
+  # are kept: the original (kaspa-even-odd) and the short-lived rename (kasodds).
   app_redirects = {
-    "kasodds.danieliyahu.com" = "https://kasodds.com"
+    "kaspa-even-odd.danieliyahu.com" = "https://kasodds.com"
+    "kasodds.danieliyahu.com"        = "https://kasodds.com"
   }
 
   redirects = merge(var.redirects, local.app_redirects)
