@@ -181,11 +181,15 @@ CLI tools. Know that you have made that choice rather than discovering it later.
 
 Whatever you do with the token, give it only:
 
-- **Zone → DNS → Edit**
+- **Zone → DNS → Edit** — on **every zone the deployment serves**. A route with its own
+  `hostname`/`zone_id` (e.g. `kasodds.com`, `onlykas.app`) is a separate zone, and `tofu`
+  refreshes the entire state on every plan, so a token scoped to `var.domain` alone fails
+  with `403 Authentication error` on the others. Set Zone Resources to **All zones**, or
+  list each one.
 - **Account → Cloudflare Tunnel → Edit**
 - **Account → Access: Apps and Policies → Edit** (only if using Access)
 
-A token scoped to one zone and three permissions is a much smaller problem than a Global
+A token scoped to a few zones and three permissions is a much smaller problem than a Global
 API Key, which can do anything to every domain you own. There is no reason to use the
 latter here.
 

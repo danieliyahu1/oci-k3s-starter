@@ -313,6 +313,43 @@ Enable it once at <https://one.dash.cloudflare.com> — it asks you to pick a te
 then re-run `tofu apply`. Everything already created stays; the apply continues from where
 it stopped.
 
+## `403 Authentication error` on DNS records in a custom-domain zone
+
+**The token's DNS permission does not cover that zone.** A route with its own
+`hostname`/`zone_id` (e.g. `kasodds.com`, `onlykas.app`) lives in a separate Cloudflare
+zone, and `tofu` refreshes the whole state on every plan — so a token scoped to
+`var.domain` alone fails on the others, even when you are changing an unrelated app:
+
+```
+Error: failed to make http request
+  with cloudflare_dns_record.tunnel["kasodds"],
+  on cloudflare.tf line 93, in resource "cloudflare_dns_record" "tunnel":
+GET ".../zones/<zone-id>/dns_records/<record-id>": 403 Forbidden
+{"success":false,"errors":[{"code":10000,"message":"Authentication error"}]}
+```
+
+It reads like a bad token. It is not — the token is valid, its `Zone → DNS → Edit`
+permission just does not apply to that zone. The zone's own `permissions` field in the
+`/zones` response is no help: it reflects *your user's* role, not the token's scope.
+
+Diagnose which zones the token covers (`200` = covered, `403` = not):
+
+```bash
+for z in <zone-id-1> <zone-id-2>; do
+  curl -s -o /dev/null -w "$z %{http_code}\n" \
+    -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+    "https://api.cloudflare.com/client/v4/zones/$z/dns_records?per_page=1"
+done
+```
+
+**Fix:** in the token, set the DNS permission's Zone Resources to **All zones** (or add
+every zone a route uses). Account-level permissions (Tunnel, Access) already cover all
+zones; only DNS is per-zone. See
+[scope it properly](state-and-credentials.md#scope-it-properly).
+
+Do **not** reach for `tofu plan -refresh=false` to get past this: it skips drift detection
+for the whole stack and hides the under-scoped token instead of fixing it.
+
 ## A pod says `CreateContainerConfigError` after pulling a new version
 
 It is referring to a Secret or ConfigMap that does not exist on your box.

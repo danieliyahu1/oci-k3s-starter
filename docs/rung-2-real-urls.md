@@ -138,7 +138,11 @@ both the memory and the certificate machinery.
 
 The token needs:
 
-- **Zone → DNS → Edit**
+- **Zone → DNS → Edit** — scoped to **every zone this deployment serves**, not just
+  `var.domain`. A route with its own `hostname`/`zone_id` (e.g. `kasodds.com`,
+  `onlykas.app`) lives in a separate zone, and `tofu` refreshes the whole state on every
+  plan. Set Zone Resources to **All zones**, or list each one; a token scoped to
+  `var.domain` alone fails with `403 Authentication error` on the others.
 - **Account → Cloudflare Tunnel → Edit**
 - **Account → Access: Apps and Policies → Edit** (only if you want the login)
 
