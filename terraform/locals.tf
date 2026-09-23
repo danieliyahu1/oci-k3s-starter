@@ -60,13 +60,6 @@ locals {
       hostname      = "kasodds.com"
       zone_id       = local.kasodds_zone_id
     }
-    kasodds_www = {
-      service       = "http://kasodds.kasodds.svc.cluster.local:3000"
-      no_tls_verify = false
-      access        = false
-      hostname      = "www.kasodds.com"
-      zone_id       = local.kasodds_zone_id
-    }
     onlykas = {
       service       = "http://onlykas.onlykas.svc.cluster.local:80"
       no_tls_verify = false
@@ -74,24 +67,68 @@ locals {
       hostname      = "onlykas.app"
       zone_id       = local.onlykas_zone_id
     }
-    onlykas_www = {
-      service       = "http://onlykas.onlykas.svc.cluster.local:80"
-      no_tls_verify = false
-      access        = false
-      hostname      = "www.onlykas.app"
-      zone_id       = local.onlykas_zone_id
-    }
   }
 
   tunnel_routes = merge(var.tunnel_routes, local.app_routes)
 
-  # The old hostname redirects to the new one — in tracked code; var.redirects overrides.
-  # Path and query are preserved, so existing invite links keep working. Only the name
-  # that was actually shared (the original) needs it; the short-lived rename does not.
+  # Every hostname that is NOT the one true origin redirects to it — in tracked code;
+  # var.redirects overrides. Path and query are preserved, so existing invite links keep
+  # working. An app serves on ONE hostname: the apex. `www.` is not a second copy of the
+  # site, it is a redirect — otherwise the browser sees two origins, the session cookie
+  # (SameSite=strict, host-scoped) does not cross between them, and any backend that pins
+  # the allowed Origin to a single value rejects the other one outright.
+  #
+  # `zone_id` names the Cloudflare zone that answers for the SOURCE host: null is the
+  # primary zone (var.cf_zone_id), a value carries a redirect whose source lives in a
+  # different domain (www.onlykas.app, www.kasodds.com).
   app_redirects = {
-    "kaspa-even-odd.danieliyahu.com" = "https://kasodds.com"
-    "onlykas.danieliyahu.com"        = "https://onlykas.app"
+    "kaspa-even-odd.danieliyahu.com" = { target = "https://kasodds.com", zone_id = null }
+    "onlykas.danieliyahu.com"        = { target = "https://onlykas.app", zone_id = null }
+    "www.kasodds.com"                = { target = "https://kasodds.com", zone_id = local.kasodds_zone_id }
+    "www.onlykas.app"                = { target = "https://onlykas.app", zone_id = local.onlykas_zone_id }
   }
 
-  redirects = merge(var.redirects, local.app_redirects)
+  # var.redirects stays a plain source => target map and always means the primary zone, so
+  # the common case needs no zone. Normalise it, then let local.app_redirects win.
+  redirects = merge(
+    { for host, target in var.redirects : host => { target = target, zone_id = null } },
+    local.app_redirects,
+  )
+
+  # A zone-level ruleset belongs to exactly one zone, so the redirects are split by the zone
+  # that answers for them. The primary zone keeps its own resource address — the one every
+  # apply has used — and each other zone gets one ruleset of its own.
+  redirects_primary = {
+    for host, r in local.redirects : host => r.target if r.zone_id == null
+  }
+  redirects_custom = {
+    for zone_id in toset([for _, r in local.redirects : r.zone_id if r.zone_id != null]) :
+    zone_id => {
+      for host, r in local.redirects : host => r.target if r.zone_id == zone_id
+    }
+  }
+
+  # One redirect rule shape, keyed by source host, so both rulesets emit identical JSON.
+  redirect_rules = {
+    for host, r in local.redirects : host => {
+      # `ref` gives the rule a stable id, so editing the expression updates the rule
+      # instead of recreating it.
+      ref         = "redirect_${replace(host, ".", "_")}"
+      description = "Redirect ${host} to ${r.target}"
+      expression  = "http.host eq \"${host}\""
+      action      = "redirect"
+
+      action_parameters = {
+        from_value = {
+          status_code = 301
+          # concat, not a bare URL: a static target would drop the path. This sends
+          # /anything on the old host to /anything on the new one.
+          target_url = {
+            expression = "concat(\"${r.target}\", http.request.uri.path)"
+          }
+          preserve_query_string = true
+        }
+      }
+    }
+  }
 }

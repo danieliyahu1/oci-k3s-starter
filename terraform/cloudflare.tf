@@ -163,52 +163,64 @@ resource "cloudflare_zero_trust_access_application" "protected" {
 
 # ── Redirects ─────────────────────────────────────────────────────────────────────
 #
-# When an app moves to a new hostname, the old one should send visitors to the new one.
-# Two things are needed at the edge: a proxied DNS record for the SOURCE hostname
-# (Cloudflare has to answer for it before any rule can run), and a Single Redirect rule.
-# The record's target is irrelevant — the rule intercepts before the tunnel — but it
-# must be proxied, or the name simply does not resolve.
+# When an app moves to a new hostname — or to the one canonical hostname it should have
+# had — the other name sends visitors to it. Two things are needed at the edge: a proxied
+# DNS record for the SOURCE hostname (Cloudflare has to answer for it before any rule can
+# run), and a Single Redirect rule in the SOURCE host's zone. The record's target is
+# irrelevant — the rule intercepts before the tunnel — but it must be proxied, or the name
+# simply does not resolve.
 #
 # The redirect preserves PATH and QUERY, so deep links survive the move: an invite at
 # /join?game=… lands on the new host at the same path, not on its front page.
 resource "cloudflare_dns_record" "redirect" {
   for_each = var.enable_cloudflare ? local.redirects : {}
 
-  zone_id = var.cf_zone_id
+  # The source host can live in another zone (www.onlykas.app), so the zone comes from the
+  # redirect; null keeps the primary zone, unchanged for the original redirects.
+  zone_id = coalesce(each.value.zone_id, var.cf_zone_id)
   name    = each.key
   type    = "CNAME"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.main[0].id}.cfargotunnel.com"
   proxied = true
   ttl     = 1
-  comment = "Managed by OpenTofu — redirect to ${each.value}"
+  comment = "Managed by OpenTofu — redirect to ${each.value.target}"
 }
 
+# The www routes used to be tunnel entries of their own, so their DNS records already exist.
+# Re-home those records into the redirect set instead of destroying and re-creating them:
+# same zone, same name, same type — a move, not a duplicate.
+moved {
+  from = cloudflare_dns_record.tunnel["kasodds_www"]
+  to   = cloudflare_dns_record.redirect["www.kasodds.com"]
+}
+
+moved {
+  from = cloudflare_dns_record.tunnel["onlykas_www"]
+  to   = cloudflare_dns_record.redirect["www.onlykas.app"]
+}
+
+# The primary zone's ruleset keeps its long-standing address, so an apply updates it in
+# place rather than tearing it down and rebuilding it; its rules are unchanged.
 resource "cloudflare_ruleset" "redirects" {
-  count = var.enable_cloudflare && length(local.redirects) > 0 ? 1 : 0
+  count = var.enable_cloudflare && length(local.redirects_primary) > 0 ? 1 : 0
 
   zone_id = var.cf_zone_id
   name    = "redirects"
   kind    = "zone"
   phase   = "http_request_dynamic_redirect"
 
-  rules = [for host, target in local.redirects : {
-    # `ref` gives the rule a stable id, so editing the expression updates the rule
-    # instead of recreating it.
-    ref         = "redirect_${replace(host, ".", "_")}"
-    description = "Redirect ${host} to ${target}"
-    expression  = "http.host eq \"${host}\""
-    action      = "redirect"
+  rules = [for host, _ in local.redirects_primary : local.redirect_rules[host]]
+}
 
-    action_parameters = {
-      from_value = {
-        status_code = 301
-        # concat, not a bare URL: a static target would drop the path. This sends
-        # /anything on the old host to /anything on the new one.
-        target_url = {
-          expression = "concat(\"${target}\", http.request.uri.path)"
-        }
-        preserve_query_string = true
-      }
-    }
-  }]
+# A ruleset is per-zone, so a source host under another domain (www.onlykas.app) needs its
+# own ruleset in that zone. One per zone, only when it has redirects.
+resource "cloudflare_ruleset" "custom_redirects" {
+  for_each = var.enable_cloudflare ? local.redirects_custom : {}
+
+  zone_id = each.key
+  name    = "redirects"
+  kind    = "zone"
+  phase   = "http_request_dynamic_redirect"
+
+  rules = [for host, _ in each.value : local.redirect_rules[host]]
 }
