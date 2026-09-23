@@ -26,9 +26,9 @@ $TF = if ($env:TF) { $env:TF }
       else { 'terraform' }
 
 if (-not $IP) {
-    Push-Location (Join-Path (Split-Path $PSScriptRoot -Parent) 'terraform')
-    $IP = (& $TF output -raw public_ip)
-    Pop-Location
+    # The shared resolver reads the Terraform-generated .ssh-endpoint (no state
+    # credentials needed). See scripts/ssh-endpoint.ps1.
+    $IP = & (Join-Path $PSScriptRoot 'ssh-endpoint.ps1')
 }
 
 # Length check, not just existence: an earlier failed fetch (k3s not up yet) must not

@@ -350,6 +350,28 @@ zones; only DNS is per-zone. See
 Do **not** reach for `tofu plan -refresh=false` to get past this: it skips drift detection
 for the whole stack and hides the under-scoped token instead of fixing it.
 
+## `connect` / `k9s` cannot find the box
+
+The scripts get the box's address from `.ssh-endpoint` in the repo root, which `tofu apply`
+generates. When that file is missing they fall back to `tofu output -raw public_ip`, which
+needs the state-bucket credentials — and without them they stop with:
+
+```
+could not resolve the SSH endpoint. Run 'tofu apply' once (it writes .ssh-endpoint),
+or export the state credentials and retry.
+```
+
+Two ways out:
+
+- **Run `tofu apply` once on this machine.** It writes `.ssh-endpoint` (gitignored), and
+  the scripts then run with no credentials at all.
+- **Or supply the credentials for that one command:** export `AWS_ACCESS_KEY_ID` and
+  `AWS_SECRET_ACCESS_KEY` — see
+  [scope it properly](state-and-credentials.md#scope-it-properly).
+
+The address is ephemeral. Do not hardcode it, and do not read it from a local `.tfstate` —
+Terraform owns it and rewrites `.ssh-endpoint` on every apply.
+
 ## A pod says `CreateContainerConfigError` after pulling a new version
 
 It is referring to a Secret or ConfigMap that does not exist on your box.

@@ -32,6 +32,11 @@ gives you real hostnames, this is how you reach anything.
 launches [k9s](https://k9scli.io) instead — the terminal dashboard for watching pods,
 deployments, events and logs during a deploy. Quit k9s and the tunnel closes with it.
 
+Both read the box's address from `.ssh-endpoint` in the repo root — a file `tofu apply`
+generates (gitignored), so running them needs no Terraform state credentials. They share
+one resolver, `ssh-endpoint.ps1` / `ssh-endpoint.sh`, which falls back to
+`tofu output -raw public_ip` when the file is absent. See `terraform/ssh-endpoint.tf`.
+
 ## For CI
 
 These run on every push and are also runnable locally, which is the point — a check you

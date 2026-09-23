@@ -84,5 +84,11 @@ terraform {
       # never configured or called when the toggle is off.
       version = "~> 5.21"
     }
+    local = {
+      source = "hashicorp/local"
+      # Writes the box's SSH endpoint to a file the local scripts read, so they need no
+      # state credentials. See terraform/artifacts.tf.
+      version = "~> 2.5"
+    }
   }
 }

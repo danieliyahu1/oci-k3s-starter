@@ -15,7 +15,10 @@ set -euo pipefail
 
 TF="${TF:-tofu}"; command -v "$TF" >/dev/null 2>&1 || TF=terraform
 
-IP="${1:-$(cd "$(dirname "$0")/../terraform" && "$TF" output -raw public_ip)}"
+# The box's address: an explicit argument wins, otherwise the shared resolver — which
+# reads the Terraform-generated .ssh-endpoint and needs no state credentials. See
+# scripts/ssh-endpoint.sh.
+IP="$(bash "$(dirname "$0")/ssh-endpoint.sh" "${1:-}")"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-$REPO_ROOT/kubeconfig}"
 SSH_USER="${SSH_USER:-ubuntu}"

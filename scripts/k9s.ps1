@@ -21,15 +21,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# OpenTofu or Terraform — both are supported. Set $env:TF = 'terraform' to force it.
-$TF = if ($env:TF) { $env:TF }
-      elseif (Get-Command tofu -ErrorAction SilentlyContinue) { 'tofu' }
-      else { 'terraform' }
-
+# The box's address. An explicit -IP wins; otherwise the shared resolver, which reads the
+# Terraform-generated .ssh-endpoint and needs no state credentials. See
+# scripts/ssh-endpoint.ps1 for the one rule the scripts share.
 if (-not $IP) {
-    Push-Location (Join-Path (Split-Path $PSScriptRoot -Parent) 'terraform')
-    $IP = (& $TF output -raw public_ip)
-    Pop-Location
+    $IP = & (Join-Path $PSScriptRoot 'ssh-endpoint.ps1')
 }
 
 # Length check, not just existence: an earlier failed fetch (k3s not up yet) must not
