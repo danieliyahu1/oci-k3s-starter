@@ -214,7 +214,8 @@ emails — a Cloudflare Access application in front of each one.
 > skipped for that hostname. See also the worked example in `terraform/terraform.tfvars.example`.
 
 > **A route on another domain.** A route may set `hostname` (a full FQDN) and `zone_id`
-> (that domain's Cloudflare zone) to leave `var.domain` — e.g. a game on `kasodds.com`.
+> (that domain's Cloudflare zone) to leave `var.domain` — e.g. a game on `kasodds.com`
+> or `onlykas.app`.
 > To move an app without breaking links, add a permanent redirect from the old hostname
 > in `local.app_redirects` (terraform/locals.tf); the path and query are preserved.
 

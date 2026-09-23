@@ -67,7 +67,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "main" {
 }
 
 # ── Custom-domain zones ───────────────────────────────────────────────────────────
-# A route with its own `hostname` lives in a different Cloudflare zone. Look that zone
+# A route with its own `hostname` lives in a different Cloudflare zone. Look each zone
 # up by name so its id is not one more value to copy from the dashboard; fetched only
 # when Cloudflare is on.
 data "cloudflare_zone" "kasodds" {
@@ -75,6 +75,14 @@ data "cloudflare_zone" "kasodds" {
 
   filter = {
     name = "kasodds.com"
+  }
+}
+
+data "cloudflare_zone" "onlykas" {
+  count = var.enable_cloudflare ? 1 : 0
+
+  filter = {
+    name = "onlykas.app"
   }
 }
 
