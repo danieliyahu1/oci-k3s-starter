@@ -1,0 +1,105 @@
+# Log storage only. The collector is a separate Application (infra-logs-collector),
+# so a problem here cannot take the collector's definition down with it.
+#
+# WHY LOKI OVER VICTORIALOGS. VictoriaMetrics already backs metrics, but Loki is the
+# logs pillar Grafana itself ships and maintains: the datasource is built in, so adding
+# this needs no plugin and no egress at Grafana start — just a ConfigMap.
+#
+# WHY MONOLITHIC. One box, one node. Monolithic runs every Loki component in a single
+# process, which is what the chart recommends up to a few tens of GB/day. The read/write/
+# backend replicas are zeroed because those targets belong to the scalable modes.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-logs
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://grafana-community.github.io/helm-charts
+    chart: loki
+    targetRevision: 18.13.3
+    helm:
+      values: |
+        # Deterministic resource names. Without this the release name is prefixed, so
+        # the Service the Grafana datasource points at would move if the app is renamed.
+        fullnameOverride: loki
+
+        deploymentMode: Monolithic
+        singleBinary:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+          persistence:
+            enabled: true
+            size: 10Gi
+            storageClass: local-path
+
+        # Scalable-mode targets, off: Monolithic runs them inside the single binary.
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+        backend:
+          replicas: 0
+
+        # The gateway is an nginx proxy in front of Loki; on one box it is one more pod
+        # to run and the datasource can reach loki:3100 directly. Canary and test are
+        # chart self-checks that push synthetic logs — noise here, and more images.
+        gateway:
+          enabled: false
+        lokiCanary:
+          enabled: false
+        test:
+          enabled: false
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+        minio:
+          enabled: false
+        # Sidecar for alerting rules. There are no rules here, so its container would
+        # sit idle next to Loki and add an image for nothing.
+        sidecar:
+          rules:
+            enabled: false
+
+        loki:
+          # One user, one cluster. Multi-tenancy would require an X-Scope-OrgID header
+          # on every query and push for no benefit.
+          auth_enabled: false
+          commonConfig:
+            replication_factor: 1
+          storage:
+            type: filesystem
+          schemaConfig:
+            configs:
+              - from: "2024-04-01"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: loki_index_
+                  period: 24h
+          limits_config:
+            retention_period: 336h # 14d, matches the metrics retention
+            allow_structured_metadata: true
+            volume_enabled: true # required by Grafana's Logs Drilldown
+          compactor:
+            retention_enabled: true
+            delete_request_store: filesystem
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

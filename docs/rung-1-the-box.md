@@ -269,6 +269,10 @@ The other dashboards are still there under **Dashboards**. `Node Exporter Full` 
 two hundred panels and is the right tool when you have a specific question about the host —
 and the wrong first impression, which is why it is not the landing page.
 
+Logs live in the same Grafana. **Explore** with the **Loki** data source queries every pod's
+logs, and **Drilldown → Logs** gives you a filterable view by namespace, pod and container.
+Alloy ships the logs and Loki keeps them for 14 days, matching the metrics retention.
+
 To add your own: create a ConfigMap in the `observability` namespace with the label
 `grafana_dashboard: "1"` and your dashboard JSON inside. The sidecar imports it within a
 minute. `kubernetes/manifests/dashboard/` is a worked example.

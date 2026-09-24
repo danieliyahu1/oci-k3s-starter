@@ -11,6 +11,9 @@ description.
 applications/                  deployed automatically
 ├── infra-observability.yaml   VictoriaMetrics + Grafana
 ├── infra-dashboard.yaml       the one dashboard worth opening
+├── infra-logs.yaml            Loki — log storage
+├── infra-logs-collector.yaml  Alloy — ships every pod's logs to Loki
+├── infra-logs-datasource.yaml Grafana's Loki data source
 ├── app-homepage.yaml          one page listing everything
 └── app-sample.yaml            podinfo — proof it works, delete when done (and take the
                                "Your apps" group in app-homepage.yaml with it — an empty

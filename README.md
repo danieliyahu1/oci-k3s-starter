@@ -64,6 +64,7 @@ flowchart LR
 | **k3s** | single-node Kubernetes, the light kind — the whole control plane is one binary |
 | **Argo CD** | points at a Git repo and keeps the cluster matching it |
 | **Grafana + VictoriaMetrics** | metrics for the node, the cluster and your app |
+| **Loki + Alloy** | every pod's logs, searchable in the same Grafana |
 | **Homepage** | one dashboard linking the above |
 | **Serial console** | a way back in when you break networking, which you will |
 

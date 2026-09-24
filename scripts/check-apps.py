@@ -111,9 +111,67 @@ def assert_homepage(docs):
     return problems
 
 
+def assert_loki(docs):
+    problems = []
+
+    # Components that belong to the scalable or decorative modes, all switched off for a
+    # single box. Their values are `enabled: false` — and Helm ignores a key it does not
+    # recognise. So a chart bump that RENAMES one of those switches turns the component
+    # back on and nothing else complains: the pods simply appear. This is the guard.
+    forbidden = ("gateway", "minio", "canary", "memcached")
+    for d in docs:
+        name = d.get("metadata", {}).get("name", "")
+        if d["kind"] not in ("Service", "Deployment", "StatefulSet", "DaemonSet"):
+            continue
+        if any(word in name for word in forbidden):
+            problems.append(
+                f"{d['kind']}/{name} rendered, but that component is meant to be OFF "
+                "(gateway/minio/caches/canary). If the chart renamed the switch, update "
+                "this assertion — otherwise you just added pods to a 2-core box."
+            )
+
+    # The Grafana datasource (and Alloy) point at `loki:3100`. Rename the Service or move
+    # the port and logs silently stop appearing, with no error anywhere.
+    svc = next((d for d in docs if d["kind"] == "Service"
+                and d["metadata"]["name"] == "loki"), None)
+    if svc is None:
+        problems.append("expected a Service named 'loki' (fullnameOverride) — the datasource "
+                        "points at loki.observability.svc.cluster.local:3100")
+    else:
+        ports = {p.get("port") for p in svc.get("spec", {}).get("ports", [])}
+        if 3100 not in ports:
+            problems.append(f"Service 'loki' does not expose port 3100 (has {sorted(ports)})")
+    return problems
+
+
+def assert_alloy(docs):
+    problems = []
+
+    # The collector is only as good as its config, and the config is a ConfigMap the chart
+    # renders from our values string. Read the rendered bytes rather than the values: if
+    # the chart moves the config elsewhere, the values still look right and nothing ships.
+    blob = "\n".join(
+        v for cm in docs if cm["kind"] == "ConfigMap"
+        for v in (cm.get("data") or {}).values() if isinstance(v, str)
+    )
+    if "loki.observability.svc.cluster.local:3100" not in blob:
+        problems.append(
+            "the Alloy config does not contain the Loki push URL "
+            "(loki.observability.svc.cluster.local:3100) — logs would ship nowhere"
+        )
+    if "loki.source.kubernetes" not in blob:
+        problems.append(
+            "the Alloy config does not use loki.source.kubernetes — it would not read pod "
+            "logs at all"
+        )
+    return problems
+
+
 ASSERTIONS = {
     "vm-stack": assert_vm_stack,
     "homepage": assert_homepage,
+    "infra-logs": assert_loki,
+    "infra-logs-collector": assert_alloy,
 }
 
 

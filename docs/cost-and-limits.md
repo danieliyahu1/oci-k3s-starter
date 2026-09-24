@@ -65,6 +65,7 @@ Each optional component you add comes out of that 8 GB:
 | cloudflared (rung 2, ×2 replicas) | ~0.15 GB |
 | External Secrets (rung 4, 3 components) | ~0.3 GB |
 | Traefik (only without Cloudflare) | ~0.15 GB |
+| Loki + Alloy (log storage and shipping) | ~0.5 GB |
 
 Even with all of them you are near 4 GB, so the headline holds — but it is worth knowing
 that "the platform" grows as you climb.

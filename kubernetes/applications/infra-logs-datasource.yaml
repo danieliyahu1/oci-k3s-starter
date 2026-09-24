@@ -1,0 +1,27 @@
+# Grafana wiring only: the Loki data source, as plain manifests from this repo.
+#
+# Separate from the Loki and collector Applications on purpose. This file describes how
+# Grafana reaches Loki — its source can be the Loki chart, VictoriaLogs, or anything else
+# speaking the same API — so it changes for different reasons than the server or the shipper.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-logs-datasource
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/oci-k3s-starter.git
+    targetRevision: HEAD
+    path: kubernetes/manifests/logging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,24 @@
+# Grafana's data source for Loki, provisioned from Git rather than clicked in the UI.
+#
+# The label is what matters: the Grafana sidecar watches for grafana_datasource: "1" and
+# imports anything wearing it. Loki's data source type is built into Grafana, so unlike a
+# VictoriaLogs setup this needs no plugin installed at startup.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-datasource
+  namespace: observability
+  labels:
+    grafana_datasource: "1"
+data:
+  loki-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki.observability.svc.cluster.local:3100
+        isDefault: false
+        jsonData:
+          maxLines: 1000
