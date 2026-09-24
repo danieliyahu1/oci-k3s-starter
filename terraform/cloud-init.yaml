@@ -34,12 +34,21 @@ packages:
 write_files:
   # k3s needs forwarding and bridged traffic to reach netfilter. Ubuntu's defaults are
   # close but not identical across images, so set them explicitly rather than hoping.
+  #
+  # The inotify line is the other thing that bites a busy single box, and it is not about
+  # k3s at all. The kernel budgets inotify instances PER USER, and here nearly everything
+  # runs as root — k3s, containerd and every root container share one pool whose Ubuntu
+  # default is only 128. Filled, the next process to ask for a file watcher gets EMFILE,
+  # logged non-fatally and repeatedly as `failed to create fsnotify watcher: too many open
+  # files` (seen from Alloy, node-exporter and any Go app using fsnotify). ~150 are already
+  # in use on this box, so 1024 is headroom, not a fix for a leak.
   - path: /etc/sysctl.d/99-k3s.conf
     permissions: "0644"
     content: |
       net.ipv4.ip_forward = 1
       net.bridge.bridge-nf-call-iptables = 1
       net.bridge.bridge-nf-call-ip6tables = 1
+      fs.inotify.max_user_instances = 1024
 
   # The app-of-apps root. Argo watches one directory in Git; adding a file there deploys an
   # app, deleting it retires one. There is no central list to maintain.

@@ -405,6 +405,36 @@ tofu apply -replace=oci_core_instance.main
 > hours. Prefer fixing in place, and rebuild only when you were willing to lose the box
 > anyway. See [Updating](../README.md#updating).
 
+## A pod logs `failed to create fsnotify watcher: too many open files`
+
+The box has run out of **inotify instances**. The kernel budgets them **per user**, and on a
+single-node box almost everything runs as **root** — k3s, containerd and every root
+container share one pool whose Ubuntu default is only **128**. Once it fills, the next
+process to ask for a file watcher gets `EMFILE`, which Go's `fsnotify` reports exactly as
+above.
+
+It is logged repeatedly and **non-fatally**: the pods stay `Running`, but whatever they were
+watching (config hot-reload, log tailing) silently stops working. Expect it from several
+pods at once — Grafana Alloy, node-exporter, and any app using fsnotify — because they are
+all racing for the same exhausted pool.
+
+Confirm the pool is full (a user, usually `root`, sitting at the limit):
+
+```bash
+ssh ubuntu@<ip> 'sysctl fs.inotify.max_user_instances; for p in /proc/[0-9]*; do u=$(ps -o user= -p ${p##*/}); n=$(sudo ls -l $p/fd 2>/dev/null | grep -c anon_inode:inotify); i=0; while [ $i -lt $n ]; do echo $u; i=$((i+1)); done; done | sort | uniq -c | sort -rn'
+```
+
+Raise it — 1024 is the usual node value:
+
+```bash
+ssh ubuntu@<ip> 'grep -q fs.inotify.max_user_instances /etc/sysctl.d/99-k3s.conf || echo "fs.inotify.max_user_instances = 1024" | sudo tee -a /etc/sysctl.d/99-k3s.conf; sudo sysctl --system'
+```
+
+The setting is declared in cloud-init, so a **rebuild** gets it on its own; the command above
+is only for a box built before it existed ([cloud-init runs once](../README.md#updating)).
+If the pool fills again, something is leaking watchers — treat that as its own bug rather
+than raising the limit further.
+
 ## My pod says `exec format error`
 
 **Your image is the wrong architecture.** Oracle's free tier is Ampere — **aarch64** — and

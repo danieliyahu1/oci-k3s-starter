@@ -279,6 +279,13 @@ If a new version adds one, your apply succeeds and your running box simply never
 it — the symptom is usually a pod stuck in `CreateContainerConfigError` referring to
 something that does not exist.
 
+A **host setting** has the same one-shot problem. If a version raises a kernel limit in
+cloud-init — `fs.inotify.max_user_instances`, say, so a busy box stops logging
+`failed to create fsnotify watcher: too many open files` — an existing box keeps the old
+value. Applying it in place is one `ssh` line, and
+[troubleshooting](docs/troubleshooting.md#a-pod-logs-failed-to-create-fsnotify-watcher-too-many-open-files)
+has the shape of it.
+
 Two ways forward, in this order:
 
 1. **Create the missing thing by hand.** It is normally one `kubectl` command, and
