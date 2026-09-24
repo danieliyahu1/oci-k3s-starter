@@ -40,3 +40,4 @@ kubeconfig.*
 # ── Local agent tooling ────────────────────────────────────────────────────────
 .opencode/
 opencode.json
+.playwright/
