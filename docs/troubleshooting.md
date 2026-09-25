@@ -316,7 +316,7 @@ it stopped.
 ## `403 Authentication error` on DNS records in a custom-domain zone
 
 **The token's DNS permission does not cover that zone.** A route with its own
-`hostname`/`zone_id` (e.g. `kasodds.com`, `onlykas.app`) lives in a separate Cloudflare
+`hostname`/`zone_id` (e.g. `kasodds.com`, `kaskama.com`) lives in a separate Cloudflare
 zone, and `tofu` refreshes the whole state on every plan — so a token scoped to
 `var.domain` alone fails on the others, even when you are changing an unrelated app:
 

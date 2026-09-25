@@ -17,10 +17,13 @@ locals {
   ubuntu_images = data.oci_core_images.ubuntu_arm.images
   image_id      = var.image_ocid != null ? var.image_ocid : (length(local.ubuntu_images) > 0 ? local.ubuntu_images[0].id : null)
 
-  # The Cloudflare zones that host custom-domain routes (kasodds.com, onlykas.app).
+  # The Cloudflare zones that host custom-domain routes (kasodds.com, kaskama.com).
+  # onlykas.app is still resolved because it remains a redirect zone for the old
+  # hostname, even though it no longer serves the application.
   # Looked up by name so their ids are not one more value to copy from the dashboard.
   # Read only when Cloudflare is on, so a rung-1 apply never calls the Cloudflare API.
   kasodds_zone_id = var.enable_cloudflare ? data.cloudflare_zone.kasodds[0].id : null
+  kaskama_zone_id = var.enable_cloudflare ? data.cloudflare_zone.kaskama[0].id : null
   onlykas_zone_id = var.enable_cloudflare ? data.cloudflare_zone.onlykas[0].id : null
 
   # The apps THIS deployment serves, on top of the generic defaults in var.tunnel_routes.
@@ -30,7 +33,7 @@ locals {
   # unusual. `access = false` serves that hostname publicly, with no Cloudflare Access.
   #
   # `hostname`/`zone_id` carry a route on a domain other than var.domain (kasodds.com,
-  # onlykas.app); null means the usual `<key>.<var.domain>` in var.cf_zone_id.
+  # kaskama.com); null means the usual `<key>.<var.domain>` in var.cf_zone_id.
   app_routes = {
     daftari = {
       service       = "http://daftari.daftari.svc.cluster.local:80"
@@ -60,12 +63,12 @@ locals {
       hostname      = "kasodds.com"
       zone_id       = local.kasodds_zone_id
     }
-    onlykas = {
+    kaskama = {
       service       = "http://onlykas.onlykas.svc.cluster.local:80"
       no_tls_verify = false
       access        = false
-      hostname      = "onlykas.app"
-      zone_id       = local.onlykas_zone_id
+      hostname      = "kaskama.com"
+      zone_id       = local.kaskama_zone_id
     }
   }
 
@@ -80,12 +83,14 @@ locals {
   #
   # `zone_id` names the Cloudflare zone that answers for the SOURCE host: null is the
   # primary zone (var.cf_zone_id), a value carries a redirect whose source lives in a
-  # different domain (www.onlykas.app, www.kasodds.com).
+  # different domain (www.kaskama.com, www.onlykas.app, www.kasodds.com).
   app_redirects = {
     "kaspa-even-odd.danieliyahu.com" = { target = "https://kasodds.com", zone_id = null }
-    "onlykas.danieliyahu.com"        = { target = "https://onlykas.app", zone_id = null }
+    "onlykas.danieliyahu.com"        = { target = "https://kaskama.com", zone_id = null }
+    "onlykas.app"                    = { target = "https://kaskama.com", zone_id = local.onlykas_zone_id }
     "www.kasodds.com"                = { target = "https://kasodds.com", zone_id = local.kasodds_zone_id }
-    "www.onlykas.app"                = { target = "https://onlykas.app", zone_id = local.onlykas_zone_id }
+    "www.kaskama.com"                = { target = "https://kaskama.com", zone_id = local.kaskama_zone_id }
+    "www.onlykas.app"                = { target = "https://kaskama.com", zone_id = local.onlykas_zone_id }
   }
 
   # var.redirects stays a plain source => target map and always means the primary zone, so

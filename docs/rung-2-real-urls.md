@@ -140,7 +140,7 @@ The token needs:
 
 - **Zone → DNS → Edit** — scoped to **every zone this deployment serves**, not just
   `var.domain`. A route with its own `hostname`/`zone_id` (e.g. `kasodds.com`,
-  `onlykas.app`) lives in a separate zone, and `tofu` refreshes the whole state on every
+  `kaskama.com`) lives in a separate zone, and `tofu` refreshes the whole state on every
   plan. Set Zone Resources to **All zones**, or list each one; a token scoped to
   `var.domain` alone fails with `403 Authentication error` on the others.
 - **Account → Cloudflare Tunnel → Edit**
@@ -219,7 +219,7 @@ emails — a Cloudflare Access application in front of each one.
 
 > **A route on another domain.** A route may set `hostname` (a full FQDN) and `zone_id`
 > (that domain's Cloudflare zone) to leave `var.domain` — e.g. a game on `kasodds.com`
-> or `onlykas.app`.
+> or `kaskama.com`.
 > To move an app without breaking links, add a permanent redirect from the old hostname
 > in `local.app_redirects` (terraform/locals.tf); the path and query are preserved.
 

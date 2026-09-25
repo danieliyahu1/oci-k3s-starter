@@ -86,6 +86,14 @@ data "cloudflare_zone" "onlykas" {
   }
 }
 
+data "cloudflare_zone" "kaskama" {
+  count = var.enable_cloudflare ? 1 : 0
+
+  filter = {
+    name = "kaskama.com"
+  }
+}
+
 # ── DNS ───────────────────────────────────────────────────────────────────────────
 # A CNAME per hostname, pointing at the tunnel rather than at any IP address. This is
 # what makes the box's ephemeral public IP a non-issue: rebuild it, get a new address,
@@ -93,7 +101,7 @@ data "cloudflare_zone" "onlykas" {
 resource "cloudflare_dns_record" "tunnel" {
   for_each = var.enable_cloudflare ? local.tunnel_routes : {}
 
-  # A route with a custom `hostname` (e.g. kasodds.com) lives in its own zone, so the
+  # A route with a custom `hostname` (e.g. kaskama.com) lives in its own zone, so the
   # record's zone and name come from the route; everything else keeps the old
   # `<key>.<var.domain>` in var.cf_zone_id, unchanged.
   zone_id = coalesce(each.value.zone_id, var.cf_zone_id)
@@ -197,6 +205,14 @@ moved {
 moved {
   from = cloudflare_dns_record.tunnel["onlykas_www"]
   to   = cloudflare_dns_record.redirect["www.onlykas.app"]
+}
+
+# The apex itself used to be a tunnel entry named `onlykas` in onlykas.app. It now serves
+# as a redirect to kaskama.com, so adopt the existing record rather than replacing it —
+# otherwise Terraform would race a destroy against the new redirect with the same hostname.
+moved {
+  from = cloudflare_dns_record.tunnel["onlykas"]
+  to   = cloudflare_dns_record.redirect["onlykas.app"]
 }
 
 # The primary zone's ruleset keeps its long-standing address, so an apply updates it in

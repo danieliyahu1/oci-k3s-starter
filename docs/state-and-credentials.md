@@ -182,7 +182,7 @@ CLI tools. Know that you have made that choice rather than discovering it later.
 Whatever you do with the token, give it only:
 
 - **Zone → DNS → Edit** — on **every zone the deployment serves**. A route with its own
-  `hostname`/`zone_id` (e.g. `kasodds.com`, `onlykas.app`) is a separate zone, and `tofu`
+  `hostname`/`zone_id` (e.g. `kasodds.com`, `kaskama.com`) is a separate zone, and `tofu`
   refreshes the entire state on every plan, so a token scoped to `var.domain` alone fails
   with `403 Authentication error` on the others. Set Zone Resources to **All zones**, or
   list each one.

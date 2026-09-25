@@ -1,4 +1,4 @@
-# OnlyKas owns its workload manifests in the application repository's deploy/ directory.
+# Kaskama owns its workload manifests in the application repository's deploy/ directory.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
