@@ -64,7 +64,7 @@ locals {
       zone_id       = local.kasodds_zone_id
     }
     kaskama = {
-      service       = "http://onlykas.onlykas.svc.cluster.local:80"
+      service       = "http://kaskama.kaskama.svc.cluster.local:80"
       no_tls_verify = false
       access        = false
       hostname      = "kaskama.com"
