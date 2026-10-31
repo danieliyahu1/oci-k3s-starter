@@ -41,3 +41,4 @@ kubeconfig.*
 .opencode/
 opencode.json
 .playwright/
+.archify/
