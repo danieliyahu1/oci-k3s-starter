@@ -70,6 +70,16 @@ locals {
       hostname      = "kaskama.com"
       zone_id       = local.kaskama_zone_id
     }
+    # Self-hosted LifeOS. `access = false` on purpose: the app has its own login, and
+    # Cloudflare Access would intercept /api/v1 before the bearer token is ever checked,
+    # which is exactly what the MCP server on the other end cannot handle.
+    lifeos = {
+      service       = "http://lifeos.lifeos.svc.cluster.local:80"
+      no_tls_verify = false
+      access        = false
+      hostname      = null
+      zone_id       = null
+    }
   }
 
   tunnel_routes = merge(var.tunnel_routes, local.app_routes)

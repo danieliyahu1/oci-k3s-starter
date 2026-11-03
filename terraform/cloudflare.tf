@@ -116,6 +116,16 @@ resource "cloudflare_dns_record" "tunnel" {
   comment = "Managed by OpenTofu — ${var.instance_name} tunnel"
 }
 
+# The lifeos record was created through the API rather than here, because the state bucket
+# was not reachable from the machine that added the route. Without this block the next
+# `tofu apply` fails on "record already exists"; with it, the apply adopts the record and
+# changes nothing. Remove the block once an apply has run with state present — after that
+# it is a no-op anyway, but it only describes a one-time adoption.
+import {
+  to = cloudflare_dns_record.tunnel["lifeos"]
+  id = "a307c497a2548ca10bf47b93d18940b4/973d554cc5afc41dbc9c152d5e85f8a6"
+}
+
 # ── Access: a login in front of everything ────────────────────────────────────────
 #
 # Created only if you list emails. That is deliberate: an Access app with no policy is
