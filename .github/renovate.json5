@@ -46,6 +46,15 @@
     managerFilePatterns: ['/kubernetes/(applications|optional)/.+\\.ya?ml$/'],
   },
 
+  // Plain Kubernetes manifests — the Deployments/StatefulSets in kubernetes/manifests.
+  //
+  // ⚠ The kubernetes manager's default is `managerFilePatterns: []`, i.e. an EMPTY list:
+  // it matches no file at all until you scope it. Same class of bug as the argocd path
+  // above, one level deeper — the config looks wired, and no image tag is ever found.
+  kubernetes: {
+    managerFilePatterns: ['/kubernetes/manifests/.+\\.ya?ml$/'],
+  },
+
   // Image tags and versions that live inside strings no manager understands: the Helm
   // values block embedded in an Argo Application, and Terraform variable defaults. Both
   // are marked with a `# renovate:` comment at the line above.
@@ -69,6 +78,23 @@
       description: 'Group the GitHub Actions bumps — they are noise individually.',
       matchManagers: ['github-actions'],
       groupName: 'github actions',
+    },
+    {
+      // LifeOS is an app we do not fork: upstream publishes the image, so a tag bump in
+      // kubernetes/manifests/lifeos/app.yaml IS the entire upgrade. Automerging is the
+      // equivalent of daftari's build-and-commit pipeline.
+      //
+      // The seven-day wait is deliberate and longer than the repo default: this app runs
+      // MySQL schema migrations on boot with no rollback path, so a broken release that
+      // migrates the database cannot be undone by reverting the tag.
+      description: 'LifeOS: upstream release bumps the image tag, and that bump is the deploy',
+      matchPackageNames: ['ghcr.io/edrisranjbar/lifeos'],
+      automerge: true,
+      // NOT platformAutomerge: this repo has GitHub's "Allow auto-merge" switched off and
+      // `main` is unprotected, so asking GitHub to own the merge fails outright. Renovate
+      // merges the PR itself once the branch is green — `ignoreTests` is false by default,
+      // so a failing `validate` run still blocks it.
+      minimumReleaseAge: '7 days',
     },
     {
       description: 'Kubernetes chart majors are not routine: they move resource shapes and can strand data. Read the upgrade notes.',

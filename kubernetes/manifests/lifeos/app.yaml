@@ -39,7 +39,9 @@ spec:
         fsGroup: 33
       containers:
         - name: app
-          # renovate: datasource=docker depName=ghcr.io/edrisranjbar/lifeos
+          # Renovate's built-in kubernetes manager reads this tag. Do NOT add a
+          # `# renovate:` comment above it: this repo's custom regex manager captures the
+          # whole `repo:tag` as the version, and would write nonsense back into the file.
           image: ghcr.io/edrisranjbar/lifeos:1.2.0
           ports:
             - name: http
