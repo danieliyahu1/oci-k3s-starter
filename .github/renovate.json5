@@ -84,9 +84,13 @@
       // kubernetes/manifests/lifeos/app.yaml IS the entire upgrade. Automerging is the
       // equivalent of daftari's build-and-commit pipeline.
       //
-      // The seven-day wait is deliberate and longer than the repo default: this app runs
-      // MySQL schema migrations on boot with no rollback path, so a broken release that
-      // migrates the database cannot be undone by reverting the tag.
+      // '0 days' is deliberate and overrides the repo-wide 3-day default: the goal is to
+      // track upstream as soon as Renovate sees the release. Removing this line instead of
+      // setting it would silently fall back to 3 days.
+      //
+      // Accepted risk: the app runs MySQL schema migrations on boot with no rollback path,
+      // so a release that migrates the database cannot be undone by reverting the tag. The
+      // database dump is the rollback plan, not the previous image.
       description: 'LifeOS: upstream release bumps the image tag, and that bump is the deploy',
       matchPackageNames: ['ghcr.io/edrisranjbar/lifeos'],
       automerge: true,
@@ -94,7 +98,7 @@
       // `main` is unprotected, so asking GitHub to own the merge fails outright. Renovate
       // merges the PR itself once the branch is green — `ignoreTests` is false by default,
       // so a failing `validate` run still blocks it.
-      minimumReleaseAge: '7 days',
+      minimumReleaseAge: '0 days',
     },
     {
       description: 'Kubernetes chart majors are not routine: they move resource shapes and can strand data. Read the upgrade notes.',
