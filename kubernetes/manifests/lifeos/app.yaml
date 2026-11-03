@@ -3,18 +3,10 @@
 # The image serves public_html as its web root and reads every setting from the
 # environment (upstream docker/config.php), so nothing here is a fork of their config.
 #
-# Secrets are NOT in Git. `lifeos-secrets` is created once, out of band:
-#
-#   kubectl -n lifeos create secret generic lifeos-secrets \
-#     --from-literal=LIFEOS_USERNAME=...        \
-#     --from-literal=LIFEOS_PASSWORD=...        \
-#     --from-literal=LIFEOS_DB_PASSWORD=...     \
-#     --from-literal=LIFEOS_DB_ROOT_PASSWORD=... \
-#     --from-literal=LIFEOS_API_TOKEN=...       \
-#     --from-literal=LIFEOS_SECRET_KEY=...
-#
-# Argo does not manage that Secret, so it is never pruned and never diffed. Rotating a
-# value means re-running the command and `kubectl rollout restart deploy/lifeos`.
+# Secrets are NOT in Git: `lifeos-secrets` is produced by the ExternalSecret in
+# externalsecret.yaml from OCI Vault entries named lifeos-*. Rotating a value means
+# changing it in the vault, force-syncing that ExternalSecret, and
+# `kubectl rollout restart deploy/lifeos` — the env is read at start-up.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
