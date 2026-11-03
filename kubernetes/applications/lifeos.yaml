@@ -1,0 +1,32 @@
+# Edi Life OS — self-hosted habits, goals, focus, finance and Kanban, with an MCP server
+# for AI clients. Upstream publishes multi-arch images, so this runs natively on the
+# Ampere node instead of emulating amd64.
+#
+# Workload manifests live in this repo (unlike daftari/kaskama, LifeOS is not forked).
+# The `lifeos-secrets` Secret is created out of band — see manifests/lifeos/app.yaml.
+#
+# Public hostname: lifeos.danieliyahu.com, routed by the Cloudflare Tunnel to
+# http://lifeos.lifeos.svc.cluster.local:80. Cloudflare Access must bypass /api/* so the
+# bearer-token API (used by OpenClaw's MCP server) is not intercepted by the browser login.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: lifeos
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/oci-k3s-starter.git
+    targetRevision: HEAD
+    path: kubernetes/manifests/lifeos
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lifeos
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

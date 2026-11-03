@@ -1,0 +1,85 @@
+# MySQL 8.4 for LifeOS — the same image and database/user names as upstream
+# docker-compose.image.yml, so a dump taken from a Compose install restores here unchanged.
+#
+# Deployment rather than StatefulSet: one replica, one volume, no stable network identity
+# to preserve. `Recreate` keeps the RWO volume from being claimed twice during updates.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lifeos-db
+  namespace: lifeos
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: lifeos-db
+  template:
+    metadata:
+      labels:
+        app: lifeos-db
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: lifeos
+            - name: MYSQL_USER
+              value: lifeos
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lifeos-secrets
+                  key: LIFEOS_DB_PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lifeos-secrets
+                  key: LIFEOS_DB_ROOT_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          # mysqladmin ping answers 0 even when the credentials are wrong, which is exactly
+          # what a liveness check wants: "is the server up", not "is my password right".
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 --silent"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 --silent"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: lifeos-mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lifeos-db
+  namespace: lifeos
+spec:
+  selector:
+    app: lifeos-db
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql

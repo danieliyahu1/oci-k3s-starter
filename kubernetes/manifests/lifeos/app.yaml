@@ -1,0 +1,94 @@
+# Edi Life OS — PHP 8.3 + Apache, built and published by the upstream project.
+#
+# The image serves public_html as its web root and reads every setting from the
+# environment (upstream docker/config.php), so nothing here is a fork of their config.
+#
+# Secrets are NOT in Git. `lifeos-secrets` is created once, out of band:
+#
+#   kubectl -n lifeos create secret generic lifeos-secrets \
+#     --from-literal=LIFEOS_USERNAME=...        \
+#     --from-literal=LIFEOS_PASSWORD=...        \
+#     --from-literal=LIFEOS_DB_PASSWORD=...     \
+#     --from-literal=LIFEOS_DB_ROOT_PASSWORD=... \
+#     --from-literal=LIFEOS_API_TOKEN=...       \
+#     --from-literal=LIFEOS_SECRET_KEY=...
+#
+# Argo does not manage that Secret, so it is never pruned and never diffed. Rotating a
+# value means re-running the command and `kubectl rollout restart deploy/lifeos`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lifeos
+  namespace: lifeos
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: lifeos
+  template:
+    metadata:
+      labels:
+        app: lifeos
+    spec:
+      # www-data is uid/gid 33 in the Debian-based php image. The attachments volume is a
+      # fresh directory on the node owned by root; without this the first upload fails with
+      # a permission error that looks like an application bug.
+      securityContext:
+        fsGroup: 33
+      containers:
+        - name: app
+          # renovate: datasource=docker depName=ghcr.io/edrisranjbar/lifeos
+          image: ghcr.io/edrisranjbar/lifeos:1.2.0
+          ports:
+            - name: http
+              containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: lifeos-config
+            - secretRef:
+                name: lifeos-secrets
+          volumeMounts:
+            - name: attachments
+              mountPath: /data/attachments
+          # The image ships no dedicated health endpoint; this is the same check upstream's
+          # compose healthcheck runs. A 3xx to /login.php counts as success.
+          readinessProbe:
+            httpGet:
+              path: /login.php
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /login.php
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              memory: 384Mi
+      volumes:
+        - name: attachments
+          persistentVolumeClaim:
+            claimName: lifeos-attachments
+---
+# Cloudflare Tunnel points at http://lifeos.lifeos.svc.cluster.local:80
+apiVersion: v1
+kind: Service
+metadata:
+  name: lifeos
+  namespace: lifeos
+spec:
+  selector:
+    app: lifeos
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,29 @@
+# Non-secret runtime configuration for LifeOS.
+#
+# Everything here comes from the upstream docker/config.php defaults, except the database
+# host, which is the Service name in this namespace instead of Compose's `db` alias.
+# Credentials live in the `lifeos-secrets` Secret (see app.yaml) and never in Git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lifeos-config
+  namespace: lifeos
+data:
+  LIFEOS_DB_HOST: lifeos-db
+  LIFEOS_DB_PORT: "3306"
+  LIFEOS_DB_NAME: lifeos
+  LIFEOS_DB_USER: lifeos
+
+  # Cloudflare terminates TLS in front of the cluster, so the app has to trust
+  # X-Forwarded-Proto for Secure cookies and X-Forwarded-For for login rate limiting.
+  LIFEOS_TRUST_PROXY: "true"
+
+  # Secret notes stay out of API reads unless this is "true". The MCP server has no
+  # use for them.
+  LIFEOS_API_ALLOW_SECRET_NOTES: "false"
+
+  LIFEOS_TIMEZONE: Asia/Jerusalem
+  TZ: Asia/Jerusalem
+  LIFEOS_WEATHER_LATITUDE: "32.0853"
+  LIFEOS_WEATHER_LONGITUDE: "34.7818"
+  LIFEOS_WEATHER_LOCATION: Tel Aviv

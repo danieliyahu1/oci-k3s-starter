@@ -1,0 +1,30 @@
+# Two volumes, mirroring the two named volumes in upstream docker-compose.yml.
+#
+# local-path is node-local and RWO, so both consumers run a single replica with a
+# Recreate strategy — a rolling update would try to mount the same volume twice and hang.
+# The database is the thing to back up; attachments are cheap to lose, hard to recreate.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lifeos-mysql
+  namespace: lifeos
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lifeos-attachments
+  namespace: lifeos
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
