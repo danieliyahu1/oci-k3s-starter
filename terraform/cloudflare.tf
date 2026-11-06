@@ -126,6 +126,19 @@ import {
   id = "a307c497a2548ca10bf47b93d18940b4/973d554cc5afc41dbc9c152d5e85f8a6"
 }
 
+# Same one-time adoption for OpenJob: the DNS record and the Access application were
+# created through the API while the state backend was unreachable, so the next apply
+# adopts them instead of failing on a duplicate.
+import {
+  to = cloudflare_dns_record.tunnel["openjob"]
+  id = "a307c497a2548ca10bf47b93d18940b4/bf38911507f6da70ae7d7313afcdc4fc"
+}
+
+import {
+  to = cloudflare_zero_trust_access_application.protected["openjob"]
+  id = "c0d977ba2937e996cc8e9b8cbacf075d/f1009ee6-5a97-45a4-8155-e10a899092f1"
+}
+
 # ── Access: a login in front of everything ────────────────────────────────────────
 #
 # Created only if you list emails. That is deliberate: an Access app with no policy is
