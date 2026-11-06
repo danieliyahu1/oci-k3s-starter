@@ -1,0 +1,28 @@
+# OpenJob — Argo Application. The openjob repo owns its workload manifests in
+# deploy/; the build-and-deliver workflow pins both images by commit SHA there.
+# Public traffic arrives through the tunnel at openjob.danieliyahu.com and is
+# gated by Cloudflare Access.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openjob
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/openjob.git
+    targetRevision: HEAD
+    path: deploy
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openjob
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

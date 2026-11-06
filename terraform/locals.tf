@@ -80,6 +80,16 @@ locals {
       hostname      = null
       zone_id       = null
     }
+    # OpenJob. The UI is a chat surface that can spend model credits, so it stays
+    # behind the Access login; the agent talks to the app over the cluster network
+    # and never through the tunnel.
+    openjob = {
+      service       = "http://openjob.openjob.svc.cluster.local:80"
+      no_tls_verify = false
+      access        = true
+      hostname      = null
+      zone_id       = null
+    }
   }
 
   tunnel_routes = merge(var.tunnel_routes, local.app_routes)
