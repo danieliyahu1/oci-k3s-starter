@@ -80,13 +80,13 @@ locals {
       hostname      = null
       zone_id       = null
     }
-    # OpenJob. The UI is a chat surface that can spend model credits, so it stays
-    # behind the Access login; the agent talks to the app over the cluster network
-    # and never through the tunnel.
+    # OpenJob. Public on purpose: the UI is the product, and the agent API is
+    # token-guarded at the application level. `access = false` keeps Cloudflare
+    # from putting a login page in front of it.
     openjob = {
       service       = "http://openjob.openjob.svc.cluster.local:80"
       no_tls_verify = false
-      access        = true
+      access        = false
       hostname      = null
       zone_id       = null
     }
