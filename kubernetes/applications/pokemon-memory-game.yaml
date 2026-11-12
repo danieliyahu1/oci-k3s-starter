@@ -1,0 +1,28 @@
+# Pokémon Memory Game — Argo Application. The application repository owns its
+# workload manifests under deploy/; the build-and-deliver workflow pins the image
+# by source commit there. Public traffic arrives through the tunnel at
+# pokemon.danieliyahu.com (terraform/locals.tf, `app_routes`).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pokemon-memory-game
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/pokemon-memory-game.git
+    targetRevision: HEAD
+    path: deploy
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pokemon-memory-game
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

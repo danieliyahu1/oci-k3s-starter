@@ -90,6 +90,29 @@ locals {
       hostname      = null
       zone_id       = null
     }
+    # Pokémon Memory Game. Public, like the other game frontends: accounts and
+    # invites are guarded by the app's own JWT login. The hostname is spelled
+    # out because the repository and namespace already carry the long name.
+    pokemon = {
+      service       = "http://pokemon-memory-game.pokemon-memory-game.svc.cluster.local:80"
+      no_tls_verify = false
+      access        = false
+      hostname      = "pokemon.danieliyahu.com"
+      zone_id       = null
+    }
+    # OpenClaw gateway running as a systemd user service ON THE HOST (not in
+    # k8s). The connector reaches it over the node's private IP, so the gateway
+    # must listen off-loopback (gateway.bind=lan). Public on purpose: the app's
+    # pairing QR needs a wss:// URL, and the gateway gates every request with
+    # its auth token + device pairing. keyed off the instance's private IP so a
+    # rebuild does not leave the route pointing at a stale address.
+    openclaw = {
+      service       = "http://${oci_core_instance.main.private_ip}:18789"
+      no_tls_verify = false
+      access        = false
+      hostname      = null
+      zone_id       = null
+    }
   }
 
   tunnel_routes = merge(var.tunnel_routes, local.app_routes)
