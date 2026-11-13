@@ -135,6 +135,20 @@ import {
   id = "a307c497a2548ca10bf47b93d18940b4/bf38911507f6da70ae7d7313afcdc4fc"
 }
 
+# Same one-time adoption for the host-level OpenClaw gateway route: the record
+# was created through the API while the state backend was unreachable.
+import {
+  to = cloudflare_dns_record.tunnel["openclaw"]
+  id = "a307c497a2548ca10bf47b93d18940b4/1113a0dcaa1f3e428b24ee16282eb3e3"
+}
+
+# Same one-time adoption for the Pokemon Memory Game record: created through the API
+# from the dashboard session while the state backend was unreachable.
+import {
+  to = cloudflare_dns_record.tunnel["pokemon"]
+  id = "a307c497a2548ca10bf47b93d18940b4/52247099e97d4d204024b756f9769d32"
+}
+
 # ── Access: a login in front of everything ────────────────────────────────────────
 #
 # Created only if you list emails. That is deliberate: an Access app with no policy is
