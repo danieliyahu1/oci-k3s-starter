@@ -126,15 +126,6 @@ import {
   id = "a307c497a2548ca10bf47b93d18940b4/973d554cc5afc41dbc9c152d5e85f8a6"
 }
 
-# Same one-time adoption for OpenJob's DNS record: it was created through the API
-# while the state backend was unreachable, so the next apply adopts it instead of
-# failing on a duplicate. The route is public (access = false), so there is no
-# Access application to adopt.
-import {
-  to = cloudflare_dns_record.tunnel["openjob"]
-  id = "a307c497a2548ca10bf47b93d18940b4/bf38911507f6da70ae7d7313afcdc4fc"
-}
-
 # Same one-time adoption for the host-level OpenClaw gateway route: the record
 # was created through the API while the state backend was unreachable.
 import {

@@ -49,13 +49,6 @@ locals {
       hostname      = null
       zone_id       = null
     }
-    onepercent = {
-      service       = "http://top-one-percent-club.top-one-percent-club.svc.cluster.local:80"
-      no_tls_verify = false
-      access        = false
-      hostname      = null
-      zone_id       = null
-    }
     kasodds = {
       service       = "http://kasodds.kasodds.svc.cluster.local:3000"
       no_tls_verify = false
@@ -75,16 +68,6 @@ locals {
     # which is exactly what the MCP server on the other end cannot handle.
     lifeos = {
       service       = "http://lifeos.lifeos.svc.cluster.local:80"
-      no_tls_verify = false
-      access        = false
-      hostname      = null
-      zone_id       = null
-    }
-    # OpenJob. Public on purpose: the UI is the product, and the agent API is
-    # token-guarded at the application level. `access = false` keeps Cloudflare
-    # from putting a login page in front of it.
-    openjob = {
-      service       = "http://openjob.openjob.svc.cluster.local:80"
       no_tls_verify = false
       access        = false
       hostname      = null
