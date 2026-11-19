@@ -1,0 +1,27 @@
+# kerenjob — Argo Application. Points at the keren-job repo's deploy/ directory.
+# The build-and-push workflow in that repo publishes two arm64 images
+# (ghcr.io/danieliyahu1/keren-job and .../keren-job-opencode) on every push to
+# master, pins their digests in deploy/deployment.yaml, and this Application
+# reconciles the cluster to that commit.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kerenjob
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/danieliyahu1/keren-job.git
+    targetRevision: HEAD
+    path: deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kerenjob
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
