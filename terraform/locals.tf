@@ -35,13 +35,6 @@ locals {
   # `hostname`/`zone_id` carry a route on a domain other than var.domain (kasodds.com,
   # kaskama.com); null means the usual `<key>.<var.domain>` in var.cf_zone_id.
   app_routes = {
-    daftari = {
-      service       = "http://daftari.daftari.svc.cluster.local:80"
-      no_tls_verify = false
-      access        = false
-      hostname      = null
-      zone_id       = null
-    }
     kticket = {
       service       = "http://kticket.kticket.svc.cluster.local:3000"
       no_tls_verify = false
